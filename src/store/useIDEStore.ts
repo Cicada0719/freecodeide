@@ -8,6 +8,7 @@ export interface IFile {
 }
 
 export type SidePanelType = 'explorer' | 'search' | 'extensions';
+export type EngineStatus = 'checking' | 'connected' | 'disconnected' | 'unknown';
 
 interface IIDEState {
   files: IFile[];
@@ -15,6 +16,9 @@ interface IIDEState {
   outputLogs: string[];
   activeSidePanel: SidePanelType;
   installedExtensions: string[];
+  
+  apiUrl: string;
+  engineStatus: EngineStatus;
   
   addFile: (name: string) => void;
   updateFileContent: (id: string, content: string) => void;
@@ -27,6 +31,9 @@ interface IIDEState {
   
   setActiveSidePanel: (panel: SidePanelType) => void;
   toggleExtension: (id: string) => void;
+  
+  setApiUrl: (url: string) => void;
+  setEngineStatus: (status: EngineStatus) => void;
 }
 
 const defaultFiles: IFile[] = [
@@ -45,6 +52,8 @@ export const useIDEStore = create<IIDEState>()(
       outputLogs: [],
       activeSidePanel: 'explorer',
       installedExtensions: ['freecode-linter'],
+      apiUrl: 'http://localhost:8080/api',
+      engineStatus: 'unknown',
 
       addFile: (name) =>
         set((state) => {
@@ -102,13 +111,17 @@ export const useIDEStore = create<IIDEState>()(
               : [...state.installedExtensions, id],
           };
         }),
+
+      setApiUrl: (apiUrl) => set({ apiUrl }),
+      setEngineStatus: (engineStatus) => set({ engineStatus }),
     }),
     {
       name: 'freecode-ide-storage',
       partialize: (state) => ({ 
         files: state.files, 
         activeFileId: state.activeFileId,
-        installedExtensions: state.installedExtensions
+        installedExtensions: state.installedExtensions,
+        apiUrl: state.apiUrl
       }),
     }
   )

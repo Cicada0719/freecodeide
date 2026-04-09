@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
@@ -11,9 +11,39 @@ import StatusBar from '../components/layout/StatusBar';
 import { useIDEStore } from '../store/useIDEStore';
 
 const IDE: React.FC = () => {
-  const { files, activeFileId, addLog, clearLogs, activeSidePanel } = useIDEStore();
+  const { files, activeFileId, addLog, clearLogs, activeSidePanel, apiUrl, setEngineStatus } = useIDEStore();
 
-  const handleRun = () => {
+  useEffect(() => {
+    const checkEngine = async () => {
+      setEngineStatus('checking');
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        
+        const res = await fetch(`${apiUrl}/info`, { 
+          signal: controller.signal,
+          method: 'GET',
+        });
+        clearTimeout(timeoutId);
+        
+        if (!res.ok) throw new Error('API not reachable');
+        
+        const data = await res.json();
+        // Check if the underlying engine is "free-code"
+        if (data && data.engine === 'free-code') {
+          setEngineStatus('connected');
+        } else {
+          setEngineStatus('disconnected');
+        }
+      } catch (error) {
+        setEngineStatus('disconnected');
+      }
+    };
+
+    checkEngine();
+  }, [apiUrl, setEngineStatus]);
+
+  const handleRun = async () => {
     clearLogs();
     const activeFile = files.find((f) => f.id === activeFileId);
     if (!activeFile) {
@@ -21,23 +51,46 @@ const IDE: React.FC = () => {
       return;
     }
 
-    addLog(`> Running ${activeFile.name}...`);
+    addLog(`> Running ${activeFile.name} via external API...`);
+    
     try {
-      const code = activeFile.content;
-      const printRegex = /print\((['"])(.*?)\1\)/g;
-      let match;
-      let output = false;
+      const res = await fetch(`${apiUrl}/execute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: activeFile.content, filename: activeFile.name })
+      });
 
-      while ((match = printRegex.exec(code)) !== null) {
-        addLog(match[2]);
-        output = true;
-      }
-
-      if (!output) {
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      
+      const data = await res.json();
+      if (data.output) {
+        addLog(data.output);
+      } else {
         addLog('Execution completed with no output.');
       }
     } catch (error: any) {
-      addLog(`Execution Error: ${error.message}`);
+      addLog(`Execution Error: Could not connect to external API. (${error.message})`);
+      addLog('---');
+      addLog('Fallback to local mock execution...');
+      
+      // Fallback basic mock execution
+      try {
+        const code = activeFile.content;
+        const printRegex = /print\((['"])(.*?)\1\)/g;
+        let match;
+        let output = false;
+
+        while ((match = printRegex.exec(code)) !== null) {
+          addLog(match[2]);
+          output = true;
+        }
+
+        if (!output) {
+          addLog('Local execution completed with no output.');
+        }
+      } catch (localError: any) {
+        addLog(`Local Execution Error: ${localError.message}`);
+      }
     }
   };
 
