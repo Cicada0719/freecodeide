@@ -10,6 +10,12 @@ export interface IFile {
 export type SidePanelType = 'explorer' | 'search' | 'extensions';
 export type EngineStatus = 'checking' | 'connected' | 'disconnected' | 'unknown';
 
+interface IAIConfig {
+  baseUrl: string;
+  apiKey: string;
+  model: string;
+}
+
 interface IIDEState {
   files: IFile[];
   activeFileId: string | null;
@@ -19,6 +25,8 @@ interface IIDEState {
   
   apiUrl: string;
   engineStatus: EngineStatus;
+  
+  aiConfig: IAIConfig;
   
   addFile: (name: string) => void;
   updateFileContent: (id: string, content: string) => void;
@@ -34,6 +42,7 @@ interface IIDEState {
   
   setApiUrl: (url: string) => void;
   setEngineStatus: (status: EngineStatus) => void;
+  setAIConfig: (config: Partial<IAIConfig>) => void;
 }
 
 const defaultFiles: IFile[] = [
@@ -54,6 +63,12 @@ export const useIDEStore = create<IIDEState>()(
       installedExtensions: ['freecode-linter'],
       apiUrl: 'http://localhost:8080/api',
       engineStatus: 'unknown',
+      
+      aiConfig: {
+        baseUrl: 'https://sub.ai6.me',
+        apiKey: 'sk-6ca22604fd7f30be89484acc6e466fc86511fc861a205efd0f4f0ff7863eeb01',
+        model: 'gpt-5.4',
+      },
 
       addFile: (name) =>
         set((state) => {
@@ -114,6 +129,7 @@ export const useIDEStore = create<IIDEState>()(
 
       setApiUrl: (apiUrl) => set({ apiUrl }),
       setEngineStatus: (engineStatus) => set({ engineStatus }),
+      setAIConfig: (config) => set((state) => ({ aiConfig: { ...state.aiConfig, ...config } })),
     }),
     {
       name: 'freecode-ide-storage',
@@ -121,7 +137,8 @@ export const useIDEStore = create<IIDEState>()(
         files: state.files, 
         activeFileId: state.activeFileId,
         installedExtensions: state.installedExtensions,
-        apiUrl: state.apiUrl
+        apiUrl: state.apiUrl,
+        aiConfig: state.aiConfig
       }),
     }
   )
