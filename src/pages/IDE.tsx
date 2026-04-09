@@ -2,6 +2,8 @@ import React from 'react';
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
+import Extensions from '../components/layout/Extensions';
+import ActivityBar from '../components/layout/ActivityBar';
 import Console from '../components/layout/Console';
 import CodeEditor from '../components/editor/CodeEditor';
 import AIChat from '../components/layout/AIChat';
@@ -9,7 +11,7 @@ import StatusBar from '../components/layout/StatusBar';
 import { useIDEStore } from '../store/useIDEStore';
 
 const IDE: React.FC = () => {
-  const { files, activeFileId, addLog, clearLogs } = useIDEStore();
+  const { files, activeFileId, addLog, clearLogs, activeSidePanel } = useIDEStore();
 
   const handleRun = () => {
     clearLogs();
@@ -44,10 +46,15 @@ const IDE: React.FC = () => {
       <Header onRun={handleRun} />
       
       <div className="flex-1 flex overflow-hidden">
+        <ActivityBar />
         <PanelGroup orientation="horizontal" className="h-full">
           {/* Left Sidebar */}
           <Panel defaultSize={15} minSize={10} maxSize={30} className="h-full relative bg-[#18181b] border-r border-[#27272a]">
-            <Sidebar />
+            {activeSidePanel === 'explorer' && <Sidebar />}
+            {activeSidePanel === 'extensions' && <Extensions />}
+            {activeSidePanel === 'search' && (
+              <div className="p-4 text-xs text-zinc-500">Search coming soon...</div>
+            )}
           </Panel>
 
           <PanelResizeHandle className="w-[1px] bg-transparent hover:bg-blue-500/50 transition-colors cursor-col-resize shrink-0 z-10" />

@@ -7,17 +7,26 @@ export interface IFile {
   content: string;
 }
 
+export type SidePanelType = 'explorer' | 'search' | 'extensions';
+
 interface IIDEState {
   files: IFile[];
   activeFileId: string | null;
   outputLogs: string[];
+  activeSidePanel: SidePanelType;
+  installedExtensions: string[];
+  
   addFile: (name: string) => void;
   updateFileContent: (id: string, content: string) => void;
   renameFile: (id: string, newName: string) => void;
   setActiveFile: (id: string) => void;
   deleteFile: (id: string) => void;
+  
   addLog: (log: string) => void;
   clearLogs: () => void;
+  
+  setActiveSidePanel: (panel: SidePanelType) => void;
+  toggleExtension: (id: string) => void;
 }
 
 const defaultFiles: IFile[] = [
@@ -34,6 +43,8 @@ export const useIDEStore = create<IIDEState>()(
       files: defaultFiles,
       activeFileId: '1',
       outputLogs: [],
+      activeSidePanel: 'explorer',
+      installedExtensions: ['freecode-linter'],
 
       addFile: (name) =>
         set((state) => {
@@ -79,10 +90,26 @@ export const useIDEStore = create<IIDEState>()(
         })),
 
       clearLogs: () => set({ outputLogs: [] }),
+
+      setActiveSidePanel: (panel) => set({ activeSidePanel: panel }),
+      
+      toggleExtension: (id) =>
+        set((state) => {
+          const isInstalled = state.installedExtensions.includes(id);
+          return {
+            installedExtensions: isInstalled
+              ? state.installedExtensions.filter((e) => e !== id)
+              : [...state.installedExtensions, id],
+          };
+        }),
     }),
     {
       name: 'freecode-ide-storage',
-      partialize: (state) => ({ files: state.files, activeFileId: state.activeFileId }), // Only persist files and active file
+      partialize: (state) => ({ 
+        files: state.files, 
+        activeFileId: state.activeFileId,
+        installedExtensions: state.installedExtensions
+      }),
     }
   )
 );
