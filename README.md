@@ -1,24 +1,57 @@
-# Free Code VS Code Extension
+# React + TypeScript + Vite
 
-This is a VS Code extension that integrates [free-code](https://github.com/paoloanzn/free-code) (the free build of Claude Code) into VS Code.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Features
+Currently, two official plugins are available:
 
-- **Free Code: Start** - Launches the `free-code` CLI inside the VS Code Integrated Terminal.
-- **Free Code: Install / Update** - Installs or updates the `free-code` CLI locally via the official quick install script.
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Requirements
+## Expanding the ESLint configuration
 
-- macOS or Linux (Windows via WSL)
-- [Bun](https://bun.sh/) is required and will be installed by the quick-install script if not present.
-- An API key or OAuth login for your chosen provider (Anthropic, OpenAI, AWS Bedrock, Vertex AI, or Foundry).
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-## Getting Started
+```js
+export default tseslint.config({
+  extends: [
+    // Remove ...tseslint.configs.recommended and replace with this
+    ...tseslint.configs.recommendedTypeChecked,
+    // Alternatively, use this for stricter rules
+    ...tseslint.configs.strictTypeChecked,
+    // Optionally, add this for stylistic rules
+    ...tseslint.configs.stylisticTypeChecked,
+  ],
+  languageOptions: {
+    // other options...
+    parserOptions: {
+      project: ['./tsconfig.node.json', './tsconfig.app.json'],
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+})
+```
 
-1. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`).
-2. Type **Free Code: Start** to launch the CLI.
-3. If it's your first time, it will prompt you to install it. Alternatively, run **Free Code: Install / Update**.
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-## License
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-MIT
+export default tseslint.config({
+  extends: [
+    // other configs...
+    // Enable lint rules for React
+    reactX.configs['recommended-typescript'],
+    // Enable lint rules for React DOM
+    reactDom.configs.recommended,
+  ],
+  languageOptions: {
+    // other options...
+    parserOptions: {
+      project: ['./tsconfig.node.json', './tsconfig.app.json'],
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
+})
+```
