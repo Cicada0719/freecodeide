@@ -32,14 +32,14 @@ const StatusBar: React.FC = () => {
           <div 
             className="flex items-center space-x-1.5 hover:text-zinc-200 cursor-pointer transition-colors border-l border-[#27272a] pl-4 ml-2" 
             onClick={handleChangeApi}
-            title={`API: ${apiUrl}\nClick to change`}
+            title={`API: ${apiUrl}\nNote: free-code is a CLI tool. This URL should point to a local proxy server that wraps the CLI.\nClick to change`}
           >
             {engineStatus === 'checking' && <RefreshCw className="w-3 h-3 animate-spin text-yellow-500" />}
             {engineStatus === 'connected' && <Wifi className="w-3 h-3 text-green-500" />}
             {(engineStatus === 'disconnected' || engineStatus === 'unknown') && <WifiOff className="w-3 h-3 text-red-500" />}
             
             <span className={engineStatus === 'connected' ? 'text-green-500/80' : engineStatus === 'checking' ? 'text-yellow-500/80' : 'text-red-500/80'}>
-              {engineStatus === 'connected' ? 'FreeCode Engine' : engineStatus === 'checking' ? 'Connecting...' : 'Engine Disconnected'}
+              {engineStatus === 'connected' ? 'FreeCode Proxy' : engineStatus === 'checking' ? 'Connecting...' : 'Proxy Disconnected'}
             </span>
           </div>
         </div>
