@@ -9,6 +9,13 @@ const Sidebar: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [isExpanded, setIsExpanded] = useState(true);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; fileId: string | null }>({ x: 0, y: 0, fileId: null });
+
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu({ x: 0, y: 0, fileId: null });
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   const handleCreate = () => {
     if (newFileName.trim()) {
@@ -27,8 +34,15 @@ const Sidebar: React.FC = () => {
     }
   };
 
+  const handleContextMenu = (e: React.MouseEvent, fileId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setActiveFile(fileId);
+    setContextMenu({ x: e.clientX, y: e.clientY, fileId });
+  };
+
   return (
-    <div className="h-full bg-[#18181b] flex flex-col text-zinc-300 w-full overflow-hidden select-none">
+    <div className="h-full bg-[#18181b] flex flex-col text-zinc-300 w-full overflow-hidden select-none relative">
       <div 
         className="flex items-center justify-between px-4 py-2 hover:bg-[#27272a]/30 cursor-pointer transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -72,6 +86,7 @@ const Sidebar: React.FC = () => {
             <div
               key={file.id}
               onClick={() => setActiveFile(file.id)}
+              onContextMenu={(e) => handleContextMenu(e, file.id)}
               className={`group flex items-center justify-between p-1.5 rounded-md cursor-pointer text-[13px] transition-all ${
                 activeFileId === file.id
                   ? 'bg-blue-500/10 text-blue-400'
@@ -136,6 +151,39 @@ const Sidebar: React.FC = () => {
             </div>
           )}
         </div>
+        {contextMenu.fileId && (
+          <div 
+            className="fixed bg-[#27272a] border border-[#3f3f46]/50 rounded-md shadow-2xl py-1 w-40 z-50 text-[12px] text-zinc-300 flex flex-col"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button 
+              className="flex items-center px-3 py-1.5 hover:bg-blue-500 hover:text-white transition-colors w-full text-left"
+              onClick={() => {
+                const file = files.find(f => f.id === contextMenu.fileId);
+                if (file) {
+                  setEditName(file.name);
+                  setEditingId(file.id);
+                  setContextMenu({ x: 0, y: 0, fileId: null });
+                }
+              }}
+            >
+              <Edit2 className="w-3.5 h-3.5 mr-2" /> Rename
+            </button>
+            <div className="h-[1px] bg-[#3f3f46]/50 my-1"></div>
+            <button 
+              className="flex items-center px-3 py-1.5 hover:bg-red-500 hover:text-white text-red-400 transition-colors w-full text-left"
+              onClick={() => {
+                if (contextMenu.fileId) {
+                  deleteFile(contextMenu.fileId);
+                  setContextMenu({ x: 0, y: 0, fileId: null });
+                }
+              }}
+            >
+              <Trash className="w-3.5 h-3.5 mr-2" /> Delete
+            </button>
+          </div>
+        )}
       )}
     </div>
   );

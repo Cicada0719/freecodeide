@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Send, Bot, Loader2, Settings, Paperclip, Code2 } from 'lucide-react';
+import { Sparkles, Send, Bot, Loader2, Settings, Paperclip, Code2, Copy, Check } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useIDEStore } from '../../store/useIDEStore';
 
 interface Message {
@@ -16,7 +18,14 @@ const AIChat: React.FC = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [includeContext, setIncludeContext] = useState(true);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -151,7 +160,59 @@ const AIChat: React.FC = () => {
                   ))}
                 </div>
               )}
-              <div className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</div>
+              <div className="leading-relaxed break-words ai-markdown">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    code({ node, inline, className, children, ...props }: any) {
+                      const match = /language-(\w+)/.exec(className || '');
+                      const codeContent = String(children).replace(/\n$/, '');
+                      const blockId = Math.random().toString(36).substr(2, 9);
+                      
+                      return !inline && match ? (
+                        <div className="relative group mt-2 mb-2 rounded-md overflow-hidden bg-[#09090b] border border-[#3f3f46]/50">
+                          <div className="flex items-center justify-between px-3 py-1.5 bg-[#27272a]/50 border-b border-[#3f3f46]/50">
+                            <span className="text-[10px] text-zinc-400 font-mono">{match[1]}</span>
+                            <button
+                              onClick={() => handleCopy(codeContent, blockId)}
+                              className="text-zinc-500 hover:text-zinc-300 transition-colors"
+                              title="Copy code"
+                            >
+                              {copiedId === blockId ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                            </button>
+                          </div>
+                          <pre className="p-3 overflow-x-auto custom-scrollbar text-[12px] text-zinc-300 font-mono m-0">
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          </pre>
+                        </div>
+                      ) : (
+                        <code className="bg-[#27272a]/80 text-blue-300 px-1 py-0.5 rounded text-[11px] font-mono mx-0.5" {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                    p({ children }) {
+                      return <p className="mb-2 last:mb-0">{children}</p>;
+                    },
+                    ul({ children }) {
+                      return <ul className="list-disc pl-4 mb-2">{children}</ul>;
+                    },
+                    ol({ children }) {
+                      return <ol className="list-decimal pl-4 mb-2">{children}</ol>;
+                    },
+                    li({ children }) {
+                      return <li className="mb-1">{children}</li>;
+                    },
+                    a({ children, href }) {
+                      return <a href={href} className="text-blue-400 hover:underline" target="_blank" rel="noreferrer">{children}</a>;
+                    }
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+              </div>
             </div>
           </div>
         ))}

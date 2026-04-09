@@ -1,23 +1,45 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { useIDEStore } from '../../store/useIDEStore';
-import { FileCode2, X } from 'lucide-react';
+import { FileCode2, X, Sparkles, Send } from 'lucide-react';
 
 const CodeEditor: React.FC = () => {
   const { files, activeFileId, updateFileContent, openFiles, setActiveFile, closeFile, saveFile } = useIDEStore();
+  const [inlineAI, setInlineAI] = useState<{ visible: boolean, top: number, left: number, prompt: string }>({ visible: false, top: 0, left: 0, prompt: '' });
+  const editorRef = useRef<any>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
-        if (activeFileId) {
-          saveFile(activeFileId);
+        if (activeFileId) saveFile(activeFileId);
+      }
+      
+      // Inline AI (Cmd/Ctrl + I)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+        e.preventDefault();
+        if (editorRef.current) {
+          const selection = editorRef.current.getSelection();
+          const position = editorRef.current.getScrolledVisiblePosition(selection.getStartPosition());
+          
+          if (position) {
+            setInlineAI({
+              visible: true,
+              top: position.top + 30, // Offset below cursor
+              left: position.left + 50,
+              prompt: ''
+            });
+          }
         }
+      }
+      
+      if (e.key === 'Escape' && inlineAI.visible) {
+        setInlineAI(prev => ({ ...prev, visible: false }));
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeFileId, saveFile]);
+  }, [activeFileId, saveFile, inlineAI.visible]);
   const monaco = useMonaco();
   const activeFile = files.find((f) => f.id === activeFileId);
   const openedFiles = openFiles.map(id => files.find(f => f.id === id)).filter(Boolean) as typeof files;
@@ -120,6 +142,7 @@ const CodeEditor: React.FC = () => {
           theme="cursor-dark"
           value={activeFile.content}
           onChange={(value) => updateFileContent(activeFile.id, value || '')}
+          onMount={(editor) => { editorRef.current = editor; }}
           options={{
             minimap: { enabled: false },
             fontSize: 13,
@@ -146,6 +169,43 @@ const CodeEditor: React.FC = () => {
             </div>
           }
         />
+
+        {/* Inline AI Widget */}
+        {inlineAI.visible && (
+          <div 
+            className="absolute z-50 w-[450px] bg-[#18181b] border border-[#3f3f46]/80 rounded-lg shadow-2xl flex items-center px-3 py-2 transition-all transform animate-in fade-in zoom-in-95 duration-200"
+            style={{ top: inlineAI.top, left: inlineAI.left }}
+          >
+            <Sparkles className="w-4 h-4 text-blue-400 mr-2 shrink-0" />
+            <input
+              autoFocus
+              type="text"
+              value={inlineAI.prompt}
+              onChange={(e) => setInlineAI(prev => ({ ...prev, prompt: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && inlineAI.prompt) {
+                  // Simulate AI editing
+                  setInlineAI(prev => ({ ...prev, visible: false }));
+                  alert('Inline AI editing is currently a UI concept mock. You requested: ' + inlineAI.prompt);
+                }
+              }}
+              placeholder="Generate or edit code..."
+              className="flex-1 bg-transparent text-[13px] text-zinc-200 placeholder-zinc-500 outline-none"
+            />
+            <div className="flex items-center space-x-1.5 ml-2 shrink-0">
+              <span className="text-[10px] text-zinc-500 bg-[#27272a]/50 px-1 rounded border border-[#3f3f46]/30">Esc</span>
+              <button 
+                onClick={() => {
+                  setInlineAI(prev => ({ ...prev, visible: false }));
+                  alert('Inline AI editing is currently a UI concept mock.');
+                }}
+                className="p-1 hover:bg-blue-600 rounded bg-blue-500/20 text-blue-400 hover:text-white transition-colors"
+              >
+                <Send className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
