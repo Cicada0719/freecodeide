@@ -1,0 +1,42 @@
+{
+  "name": "free-code-vscode",
+  "displayName": "Free Code",
+  "description": "VS Code extension for free-code CLI (The free build of Claude Code)",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other",
+    "Machine Learning"
+  ],
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "freecode.start",
+        "title": "Free Code: Start",
+        "category": "Free Code"
+      },
+      {
+        "command": "freecode.install",
+        "title": "Free Code: Install / Update",
+        "category": "Free Code"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "18.x",
+    "typescript": "^5.3.3"
+  }
+}
