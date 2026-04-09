@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { useIDEStore } from '../../store/useIDEStore';
-import { TerminalSquare } from 'lucide-react';
+import { X, ChevronRight } from 'lucide-react';
 
 const Console: React.FC = () => {
   const { outputLogs, clearLogs } = useIDEStore();
@@ -13,30 +13,36 @@ const Console: React.FC = () => {
   }, [outputLogs]);
 
   return (
-    <div className="h-full bg-[#181818] flex flex-col font-mono text-sm border-t border-[#2D2D2D] text-gray-300">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-[#2D2D2D] bg-[#1E1E1E] shrink-0">
-        <div className="flex items-center space-x-2">
-          <TerminalSquare className="w-4 h-4 text-blue-400" />
-          <span className="font-semibold text-xs tracking-wide uppercase text-gray-400">终端输出</span>
+    <div className="h-full bg-[#09090b] flex flex-col font-mono text-[13px] text-zinc-300">
+      <div className="flex items-center justify-between px-4 py-1.5 bg-[#09090b] shrink-0 select-none border-b border-[#27272a]/50">
+        <div className="flex items-center space-x-6">
+          <button className="text-[11px] tracking-wide font-medium text-zinc-200 border-b border-zinc-200 pb-0.5">TERMINAL</button>
+          <button className="text-[11px] tracking-wide font-medium text-zinc-600 hover:text-zinc-300 pb-0.5 transition-colors">OUTPUT</button>
+          <button className="text-[11px] tracking-wide font-medium text-zinc-600 hover:text-zinc-300 pb-0.5 transition-colors">PROBLEMS</button>
         </div>
-        <button
-          onClick={clearLogs}
-          className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
-        >
-          清空
-        </button>
+        <div className="flex items-center space-x-2 text-zinc-500">
+          <button onClick={clearLogs} className="hover:text-zinc-300 transition-colors p-1 rounded hover:bg-[#27272a]/50" title="Clear Console">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       <div
         ref={consoleRef}
-        className="flex-1 overflow-y-auto p-4 space-y-1 bg-[#0D0D0D] custom-scrollbar"
+        className="flex-1 overflow-y-auto p-4 space-y-1.5 custom-scrollbar"
       >
         {outputLogs.length === 0 ? (
-          <div className="text-gray-600 italic">No output yet. Run your code to see results...</div>
+          <div className="flex items-center text-zinc-600">
+            <ChevronRight className="w-3.5 h-3.5 mr-1" />
+            <span className="italic">Ready to execute.</span>
+          </div>
         ) : (
           outputLogs.map((log, index) => (
-            <div key={index} className="whitespace-pre-wrap break-words leading-relaxed text-gray-300">
-              {log}
+            <div key={index} className="flex items-start group">
+              <ChevronRight className="w-3.5 h-3.5 mr-2 mt-0.5 text-zinc-600 group-hover:text-blue-500 transition-colors shrink-0" />
+              <div className="whitespace-pre-wrap break-words leading-relaxed text-zinc-300">
+                {log}
+              </div>
             </div>
           ))
         )}

@@ -4,6 +4,8 @@ import Header from '../components/layout/Header';
 import Sidebar from '../components/layout/Sidebar';
 import Console from '../components/layout/Console';
 import CodeEditor from '../components/editor/CodeEditor';
+import AIChat from '../components/layout/AIChat';
+import StatusBar from '../components/layout/StatusBar';
 import { useIDEStore } from '../store/useIDEStore';
 
 const IDE: React.FC = () => {
@@ -19,8 +21,6 @@ const IDE: React.FC = () => {
 
     addLog(`> Running ${activeFile.name}...`);
     try {
-      // Very basic mock execution environment for "freecode"
-      // We will parse `print("something")` statements
       const code = activeFile.content;
       const printRegex = /print\((['"])(.*?)\1\)/g;
       let match;
@@ -40,38 +40,45 @@ const IDE: React.FC = () => {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden bg-[#181818] text-gray-200">
+    <div className="h-screen w-screen flex flex-col overflow-hidden bg-[#09090b] text-zinc-200 font-sans">
       <Header onRun={handleRun} />
       
       <div className="flex-1 flex overflow-hidden">
         <PanelGroup orientation="horizontal" className="h-full">
-          {/* Sidebar */}
-          <Panel defaultSize={20} minSize={10} maxSize={30} className="h-full relative bg-[#181818]">
+          {/* Left Sidebar */}
+          <Panel defaultSize={15} minSize={10} maxSize={30} className="h-full relative bg-[#18181b] border-r border-[#27272a]">
             <Sidebar />
           </Panel>
 
-          {/* Resize Handle */}
-          <PanelResizeHandle className="w-1 bg-[#2D2D2D] hover:bg-green-500 hover:opacity-50 transition-colors cursor-col-resize shrink-0 z-10" />
+          <PanelResizeHandle className="w-[1px] bg-transparent hover:bg-blue-500/50 transition-colors cursor-col-resize shrink-0 z-10" />
 
           {/* Main Area */}
-          <Panel defaultSize={80} className="h-full flex flex-col bg-[#1E1E1E]">
+          <Panel defaultSize={60} className="h-full flex flex-col bg-[#09090b]">
             <PanelGroup orientation="vertical">
               {/* Code Editor */}
-              <Panel defaultSize={70} minSize={30} className="h-full relative">
+              <Panel defaultSize={75} minSize={30} className="h-full relative">
                 <CodeEditor />
               </Panel>
 
-              {/* Resize Handle */}
-              <PanelResizeHandle className="h-1 bg-[#2D2D2D] hover:bg-green-500 hover:opacity-50 transition-colors cursor-row-resize shrink-0 z-10" />
+              <PanelResizeHandle className="h-[1px] bg-[#27272a]/50 hover:bg-blue-500/50 transition-colors cursor-row-resize shrink-0 z-10" />
 
               {/* Console Output */}
-              <Panel defaultSize={30} minSize={10} className="h-full relative bg-[#0D0D0D]">
+              <Panel defaultSize={25} minSize={10} className="h-full relative bg-[#09090b]">
                 <Console />
               </Panel>
             </PanelGroup>
           </Panel>
+
+          <PanelResizeHandle className="w-[1px] bg-[#27272a]/50 hover:bg-blue-500/50 transition-colors cursor-col-resize shrink-0 z-10" />
+
+          {/* Right Sidebar - AI Chat */}
+          <Panel defaultSize={25} minSize={15} maxSize={40} className="h-full relative bg-[#18181b]">
+            <AIChat />
+          </Panel>
         </PanelGroup>
       </div>
+      
+      <StatusBar />
     </div>
   );
 };
