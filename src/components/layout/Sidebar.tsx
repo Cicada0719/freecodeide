@@ -100,9 +100,11 @@ const Sidebar: React.FC = () => {
                 <>
                   <div className="flex items-center space-x-2 truncate">
                     <FileCode2 className={`w-3.5 h-3.5 shrink-0 ${activeFileId === file.id ? 'text-blue-400' : 'text-zinc-500 group-hover:text-blue-400/70 transition-colors'}`} />
-                    <span className="truncate">{file.name}</span>
+                    <span className={`truncate ${file.isDirty ? 'italic text-zinc-300' : ''}`}>{file.name}</span>
                   </div>
-                  <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center">
+                    {file.isDirty && <div className="w-1.5 h-1.5 rounded-full bg-blue-400 mr-2 opacity-100 transition-opacity" />}
+                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

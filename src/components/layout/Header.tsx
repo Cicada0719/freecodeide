@@ -19,7 +19,13 @@ const Header: React.FC<HeaderProps> = ({ onRun }) => {
 
        {/* Center: Command Palette Input */}
        <div className="flex-1 max-w-lg mx-4 flex justify-center">
-         <div className="w-full bg-[#27272a]/30 hover:bg-[#27272a]/60 border border-[#3f3f46]/30 rounded-md px-3 py-1 flex items-center text-zinc-400 text-xs transition-all cursor-text shadow-sm group">
+         <div 
+           className="w-full bg-[#27272a]/30 hover:bg-[#27272a]/60 border border-[#3f3f46]/30 rounded-md px-3 py-1 flex items-center text-zinc-400 text-xs transition-all cursor-pointer shadow-sm group"
+           onClick={() => {
+             const event = new KeyboardEvent('keydown', { key: 'k', metaKey: true });
+             window.dispatchEvent(event);
+           }}
+         >
            <Search className="w-3 h-3 mr-2 opacity-70 group-hover:opacity-100" />
            <span className="flex-1 truncate">Search or type a command...</span>
            <div className="flex items-center space-x-1 opacity-70">

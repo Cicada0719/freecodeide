@@ -4,7 +4,20 @@ import { useIDEStore } from '../../store/useIDEStore';
 import { FileCode2, X } from 'lucide-react';
 
 const CodeEditor: React.FC = () => {
-  const { files, activeFileId, updateFileContent, openFiles, setActiveFile, closeFile } = useIDEStore();
+  const { files, activeFileId, updateFileContent, openFiles, setActiveFile, closeFile, saveFile } = useIDEStore();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+        e.preventDefault();
+        if (activeFileId) {
+          saveFile(activeFileId);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeFileId, saveFile]);
   const monaco = useMonaco();
   const activeFile = files.find((f) => f.id === activeFileId);
   const openedFiles = openFiles.map(id => files.find(f => f.id === id)).filter(Boolean) as typeof files;
@@ -75,7 +88,7 @@ const CodeEditor: React.FC = () => {
             <FileCode2 className={`w-3.5 h-3.5 mr-2 shrink-0 transition-colors ${
               activeFileId === file.id ? 'text-blue-400' : 'text-zinc-600 group-hover:text-blue-400/50'
             }`} />
-            <span className="truncate flex-1">{file.name}</span>
+            <span className={`truncate flex-1 ${file.isDirty ? 'italic text-zinc-300' : ''}`}>{file.name}</span>
             
             <button 
               onClick={(e) => {
@@ -83,10 +96,10 @@ const CodeEditor: React.FC = () => {
                 closeFile(file.id);
               }}
               className={`p-0.5 rounded-md ml-2 shrink-0 transition-all ${
-                activeFileId === file.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                activeFileId === file.id || file.isDirty ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
               } hover:bg-[#3f3f46] text-zinc-500 hover:text-zinc-200`}
             >
-              <X className="w-3 h-3" />
+              {file.isDirty ? <div className="w-2 h-2 rounded-full bg-blue-400 m-0.5" /> : <X className="w-3 h-3" />}
             </button>
           </div>
         ))}

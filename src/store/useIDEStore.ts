@@ -5,6 +5,7 @@ export interface IFile {
   id: string;
   name: string;
   content: string;
+  isDirty?: boolean;
 }
 
 export type SidePanelType = 'explorer' | 'search' | 'extensions';
@@ -35,6 +36,7 @@ interface IIDEState {
   setActiveFile: (id: string) => void;
   deleteFile: (id: string) => void;
   closeFile: (id: string) => void;
+  saveFile: (id: string) => void;
   
   addLog: (log: string) => void;
   appendLastLog: (chunk: string) => void;
@@ -91,7 +93,7 @@ export const useIDEStore = create<IIDEState>()(
       updateFileContent: (id, content) =>
         set((state) => ({
           files: state.files.map((file) =>
-            file.id === id ? { ...file, content } : file
+            file.id === id ? { ...file, content, isDirty: true } : file
           ),
         })),
 
@@ -140,6 +142,13 @@ export const useIDEStore = create<IIDEState>()(
             activeFileId: newActiveId,
           };
         }),
+
+      saveFile: (id) =>
+        set((state) => ({
+          files: state.files.map((file) =>
+            file.id === id ? { ...file, isDirty: false } : file
+          ),
+        })),
 
       addLog: (log) =>
         set((state) => ({

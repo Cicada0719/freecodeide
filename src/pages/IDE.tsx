@@ -13,6 +13,20 @@ import { useIDEStore } from '../store/useIDEStore';
 
 const IDE: React.FC = () => {
   const { files, activeFileId, addLog, appendLastLog, clearLogs, activeSidePanel, apiUrl, setEngineStatus, aiConfig } = useIDEStore();
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = React.useState(false);
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Cmd+K or Ctrl+K for Command Palette
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, []);
 
   useEffect(() => {
     const checkEngine = async () => {
@@ -164,6 +178,12 @@ const IDE: React.FC = () => {
       </div>
       
       <StatusBar />
+      
+      <CommandPalette 
+        isOpen={isCommandPaletteOpen} 
+        onClose={() => setIsCommandPaletteOpen(false)} 
+        onRun={handleRun} 
+      />
     </div>
   );
 };

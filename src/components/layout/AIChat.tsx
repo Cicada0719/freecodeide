@@ -1,19 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Send, Bot, Loader2, Settings } from 'lucide-react';
+import { Sparkles, Send, Bot, Loader2, Settings, Paperclip, Code2 } from 'lucide-react';
 import { useIDEStore } from '../../store/useIDEStore';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
+  contextFiles?: { name: string; content: string }[];
 }
 
 const AIChat: React.FC = () => {
-  const { aiConfig } = useIDEStore();
+  const { aiConfig, files, openFiles } = useIDEStore();
   const [messages, setMessages] = useState<Message[]>([
     { role: 'assistant', content: "Hello! I'm your AI assistant. I can help you write, debug, or explain freecode. How can I help you today?" }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [includeContext, setIncludeContext] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,13 +27,22 @@ const AIChat: React.FC = () => {
     
     const userMessage = input.trim();
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    
+    const contextFiles = includeContext 
+      ? openFiles.map(id => files.find(f => f.id === id)).filter(Boolean) as {name: string, content: string}[]
+      : [];
+      
+    setMessages(prev => [...prev, { role: 'user', content: userMessage, contextFiles }]);
     setIsLoading(true);
 
-    // Initialize an empty assistant message
     setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
     try {
+      let systemPrompt = 'You are a helpful coding assistant for the "freecode" programming language.';
+      if (contextFiles.length > 0) {
+        systemPrompt += '\n\nHere are the files currently open in the editor for context:\n' + 
+          contextFiles.map(f => `--- ${f.name} ---\n${f.content}\n`).join('\n');
+      }
       const url = aiConfig.baseUrl.endsWith('/') ? aiConfig.baseUrl : `${aiConfig.baseUrl}/`;
       const res = await fetch(`${url}v1/chat/completions`, {
         method: 'POST',
@@ -42,7 +53,7 @@ const AIChat: React.FC = () => {
         body: JSON.stringify({
           model: aiConfig.model,
           messages: [
-            { role: 'system', content: 'You are a helpful coding assistant for the "freecode" programming language.' },
+            { role: 'system', content: systemPrompt },
             ...messages.map(m => ({ role: m.role, content: m.content })),
             { role: 'user', content: userMessage }
           ],
@@ -130,6 +141,16 @@ const AIChat: React.FC = () => {
                   <span className="text-zinc-200 font-medium text-xs">FreeCode Assistant</span>
                 </div>
               )}
+              {msg.role === 'user' && msg.contextFiles && msg.contextFiles.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {msg.contextFiles.map((f, i) => (
+                    <div key={i} className="flex items-center bg-blue-500/10 border border-blue-500/20 text-blue-300 text-[10px] px-1.5 py-0.5 rounded-sm">
+                      <Code2 className="w-3 h-3 mr-1" />
+                      {f.name}
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</div>
             </div>
           </div>
@@ -149,23 +170,39 @@ const AIChat: React.FC = () => {
       
       {/* Input Area */}
       <div className="p-3 border-t border-[#27272a] bg-[#18181b] shrink-0">
-        <div className="bg-[#27272a]/50 border border-[#3f3f46]/50 rounded-lg p-2 flex items-end focus-within:border-blue-500/50 focus-within:bg-[#27272a]/80 transition-all shadow-inner">
-          <textarea 
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full bg-transparent text-[13px] text-zinc-200 placeholder-zinc-500 outline-none resize-none min-h-[40px] max-h-[150px] custom-scrollbar overflow-y-auto" 
-            placeholder="Ask anything (⏎ to send)..."
-            rows={input.split('\n').length > 1 ? Math.min(input.split('\n').length, 5) : 1}
-          />
-          <button 
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            className="p-1.5 ml-2 bg-blue-600/80 hover:bg-blue-500 disabled:bg-zinc-700/50 disabled:text-zinc-500 text-white rounded-md transition-colors" 
-            title="Send"
-          >
-            <Send className="w-3.5 h-3.5" />
-          </button>
+        <div className="bg-[#27272a]/50 border border-[#3f3f46]/50 rounded-lg flex flex-col focus-within:border-blue-500/50 focus-within:bg-[#27272a]/80 transition-all shadow-inner relative overflow-hidden">
+          <div className="flex items-center justify-between px-2 py-1.5 border-b border-[#3f3f46]/30 bg-[#27272a]/20">
+            <button 
+              onClick={() => setIncludeContext(!includeContext)}
+              className={`flex items-center text-[10px] px-1.5 py-0.5 rounded transition-colors ${
+                includeContext 
+                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' 
+                  : 'text-zinc-500 hover:text-zinc-300 hover:bg-[#3f3f46]/50'
+              }`}
+            >
+              <Paperclip className="w-3 h-3 mr-1" />
+              {includeContext ? 'Context Included' : 'No Context'}
+            </button>
+          </div>
+          
+          <div className="p-2 flex items-end">
+            <textarea 
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full bg-transparent text-[13px] text-zinc-200 placeholder-zinc-500 outline-none resize-none min-h-[40px] max-h-[150px] custom-scrollbar overflow-y-auto" 
+              placeholder="Ask anything (⏎ to send)..."
+              rows={input.split('\n').length > 1 ? Math.min(input.split('\n').length, 5) : 1}
+            />
+            <button 
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              className="p-1.5 ml-2 bg-blue-600/80 hover:bg-blue-500 disabled:bg-zinc-700/50 disabled:text-zinc-500 text-white rounded-md transition-colors" 
+              title="Send"
+            >
+              <Send className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>
