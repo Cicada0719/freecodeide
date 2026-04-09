@@ -8,6 +8,7 @@ import Console from '../components/layout/Console';
 import CodeEditor from '../components/editor/CodeEditor';
 import AIChat from '../components/layout/AIChat';
 import StatusBar from '../components/layout/StatusBar';
+import CommandPalette from '../components/layout/CommandPalette';
 import { useIDEStore } from '../store/useIDEStore';
 
 const IDE: React.FC = () => {
