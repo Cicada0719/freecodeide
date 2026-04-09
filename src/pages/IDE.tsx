@@ -11,7 +11,7 @@ import StatusBar from '../components/layout/StatusBar';
 import { useIDEStore } from '../store/useIDEStore';
 
 const IDE: React.FC = () => {
-  const { files, activeFileId, addLog, clearLogs, activeSidePanel, apiUrl, setEngineStatus } = useIDEStore();
+  const { files, activeFileId, addLog, appendLastLog, clearLogs, activeSidePanel, apiUrl, setEngineStatus, aiConfig } = useIDEStore();
 
   useEffect(() => {
     const checkEngine = async () => {
@@ -52,28 +52,52 @@ const IDE: React.FC = () => {
     }
 
     addLog(`> Running ${activeFile.name} via external API...`);
+    addLog(''); // Initialize empty log for streaming
     
     try {
       const res = await fetch(`${apiUrl}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: activeFile.content, filename: activeFile.name })
+        body: JSON.stringify({ 
+          code: activeFile.content, 
+          filename: activeFile.name,
+          aiConfig 
+        })
       });
 
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      if (!res.body) throw new Error('No response body');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
       
-      const data = await res.json();
-      if (data.output) {
-        addLog(data.output);
-      } else {
-        addLog('Execution completed with no output.');
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.substring(6));
+              if (data.type === 'stdout' || data.type === 'stderr') {
+                appendLastLog(data.content);
+              } else if (data.type === 'close') {
+                appendLastLog(`\n\nProcess exited with code ${data.code}`);
+              }
+            } catch (e) {
+              // Ignore parse errors for incomplete chunks
+            }
+          }
+        }
       }
     } catch (error: any) {
-      addLog(`Execution Error: Could not connect to external API. (${error.message})`);
+      appendLastLog(`\nExecution Error: Could not connect to external API. (${error.message})`);
       addLog('---');
       addLog('Fallback to local mock execution...');
       
-      // Fallback basic mock execution
       try {
         const code = activeFile.content;
         const printRegex = /print\((['"])(.*?)\1\)/g;

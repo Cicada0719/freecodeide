@@ -20,12 +20,16 @@ app.get('/api/info', (req, res) => {
 });
 
 app.post('/api/execute', async (req, res) => {
-  const { code, filename } = req.body;
+  const { code, filename, aiConfig } = req.body;
   if (!code) {
     return res.status(400).json({ error: 'No code provided' });
   }
 
-  // Create a temporary directory to run the code
+  // Use Server-Sent Events to stream the output
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
   const tmpDir = path.join(__dirname, 'tmp');
   if (!fs.existsSync(tmpDir)) {
     fs.mkdirSync(tmpDir, { recursive: true });
@@ -35,16 +39,14 @@ app.post('/api/execute', async (req, res) => {
   const filePath = path.join(tmpDir, safeFilename);
   fs.writeFileSync(filePath, code);
 
-  // Here we use the free-code CLI to "run" or process the file
-  // Since free-code is an AI agent, we ask it to execute or analyze the file
   const prompt = `Please run or analyze the following file and provide the output: ${filePath}`;
   
   const env = {
     ...process.env,
     CLAUDE_CODE_USE_OPENAI: '1',
-    OPENAI_API_KEY: 'sk-6ca22604fd7f30be89484acc6e466fc86511fc861a205efd0f4f0ff7863eeb01',
-    OPENAI_BASE_URL: 'https://sub.ai6.me',
-    OPENAI_MODEL: 'gpt-5.4', // Depending on how free-code handles this, it might need specific mapping
+    OPENAI_API_KEY: aiConfig?.apiKey || process.env.OPENAI_API_KEY || '',
+    OPENAI_BASE_URL: aiConfig?.baseUrl || process.env.OPENAI_BASE_URL || '',
+    OPENAI_MODEL: aiConfig?.model || process.env.OPENAI_MODEL || '',
   };
 
   const child = spawn(FREE_CODE_CLI, ['-p', prompt], {
@@ -52,28 +54,20 @@ app.post('/api/execute', async (req, res) => {
     env
   });
 
-  let output = '';
-  let errorOutput = '';
-
   child.stdout.on('data', (data) => {
-    output += data.toString();
+    res.write(`data: ${JSON.stringify({ type: 'stdout', content: data.toString() })}\n\n`);
   });
 
   child.stderr.on('data', (data) => {
-    errorOutput += data.toString();
+    res.write(`data: ${JSON.stringify({ type: 'stderr', content: data.toString() })}\n\n`);
   });
 
   child.on('close', (code) => {
-    // Clean up
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
-
-    if (code !== 0) {
-      res.json({ output: `Exit code: ${code}\nError: ${errorOutput}\nOutput: ${output}` });
-    } else {
-      res.json({ output: output || 'Execution completed.' });
-    }
+    res.write(`data: ${JSON.stringify({ type: 'close', code })}\n\n`);
+    res.end();
   });
 });
 

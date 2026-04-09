@@ -19,6 +19,7 @@ interface IAIConfig {
 interface IIDEState {
   files: IFile[];
   activeFileId: string | null;
+  openFiles: string[]; // List of file IDs currently open in tabs
   outputLogs: string[];
   activeSidePanel: SidePanelType;
   installedExtensions: string[];
@@ -33,8 +34,10 @@ interface IIDEState {
   renameFile: (id: string, newName: string) => void;
   setActiveFile: (id: string) => void;
   deleteFile: (id: string) => void;
+  closeFile: (id: string) => void;
   
   addLog: (log: string) => void;
+  appendLastLog: (chunk: string) => void;
   clearLogs: () => void;
   
   setActiveSidePanel: (panel: SidePanelType) => void;
@@ -58,6 +61,7 @@ export const useIDEStore = create<IIDEState>()(
     (set) => ({
       files: defaultFiles,
       activeFileId: '1',
+      openFiles: ['1'],
       outputLogs: [],
       activeSidePanel: 'explorer',
       installedExtensions: ['freecode-linter'],
@@ -80,6 +84,7 @@ export const useIDEStore = create<IIDEState>()(
           return {
             files: [...state.files, newFile],
             activeFileId: newFile.id,
+            openFiles: [...state.openFiles, newFile.id],
           };
         }),
 
@@ -97,14 +102,42 @@ export const useIDEStore = create<IIDEState>()(
           ),
         })),
 
-      setActiveFile: (id) => set({ activeFileId: id }),
+      setActiveFile: (id) => set((state) => {
+        const newOpenFiles = state.openFiles.includes(id) 
+          ? state.openFiles 
+          : [...state.openFiles, id];
+        return { activeFileId: id, openFiles: newOpenFiles };
+      }),
 
       deleteFile: (id) =>
         set((state) => {
           const newFiles = state.files.filter((file) => file.id !== id);
+          const newOpenFiles = state.openFiles.filter(fid => fid !== id);
+          let newActiveId = state.activeFileId;
+          
+          if (state.activeFileId === id) {
+            newActiveId = newOpenFiles.length > 0 ? newOpenFiles[newOpenFiles.length - 1] : null;
+          }
+          
           return {
             files: newFiles,
-            activeFileId: state.activeFileId === id ? (newFiles[0]?.id || null) : state.activeFileId,
+            openFiles: newOpenFiles,
+            activeFileId: newActiveId,
+          };
+        }),
+
+      closeFile: (id) => 
+        set((state) => {
+          const newOpenFiles = state.openFiles.filter(fid => fid !== id);
+          let newActiveId = state.activeFileId;
+          
+          if (state.activeFileId === id) {
+            newActiveId = newOpenFiles.length > 0 ? newOpenFiles[newOpenFiles.length - 1] : null;
+          }
+          
+          return {
+            openFiles: newOpenFiles,
+            activeFileId: newActiveId,
           };
         }),
 
@@ -112,6 +145,16 @@ export const useIDEStore = create<IIDEState>()(
         set((state) => ({
           outputLogs: [...state.outputLogs, log],
         })),
+
+      appendLastLog: (chunk) =>
+        set((state) => {
+          if (state.outputLogs.length === 0) {
+            return { outputLogs: [chunk] };
+          }
+          const newLogs = [...state.outputLogs];
+          newLogs[newLogs.length - 1] += chunk;
+          return { outputLogs: newLogs };
+        }),
 
       clearLogs: () => set({ outputLogs: [] }),
 
@@ -136,6 +179,7 @@ export const useIDEStore = create<IIDEState>()(
       partialize: (state) => ({ 
         files: state.files, 
         activeFileId: state.activeFileId,
+        openFiles: state.openFiles,
         installedExtensions: state.installedExtensions,
         apiUrl: state.apiUrl,
         aiConfig: state.aiConfig

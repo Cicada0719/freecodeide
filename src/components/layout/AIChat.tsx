@@ -28,6 +28,9 @@ const AIChat: React.FC = () => {
     setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setIsLoading(true);
 
+    // Initialize an empty assistant message
+    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+
     try {
       const url = aiConfig.baseUrl.endsWith('/') ? aiConfig.baseUrl : `${aiConfig.baseUrl}/`;
       const res = await fetch(`${url}v1/chat/completions`, {
@@ -43,7 +46,7 @@ const AIChat: React.FC = () => {
             ...messages.map(m => ({ role: m.role, content: m.content })),
             { role: 'user', content: userMessage }
           ],
-          stream: false
+          stream: true
         })
       });
 
@@ -51,12 +54,42 @@ const AIChat: React.FC = () => {
         throw new Error(`HTTP error! status: ${res.status}`);
       }
 
-      const data = await res.json();
-      const assistantMessage = data.choices?.[0]?.message?.content || "No response received.";
+      if (!res.body) throw new Error('No response body');
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder('utf-8');
       
-      setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+            try {
+              const data = JSON.parse(line.substring(6));
+              const content = data.choices[0]?.delta?.content || '';
+              if (content) {
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  newMessages[newMessages.length - 1].content += content;
+                  return newMessages;
+                });
+              }
+            } catch (e) {
+              // Ignore parse errors for incomplete chunks
+            }
+          }
+        }
+      }
     } catch (error: any) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `Error: ${error.message}. Please check your API configuration in the status bar.` }]);
+      setMessages(prev => {
+        const newMessages = [...prev];
+        newMessages[newMessages.length - 1].content = `Error: ${error.message}. Please check your API configuration in the status bar.`;
+        return newMessages;
+      });
     } finally {
       setIsLoading(false);
     }

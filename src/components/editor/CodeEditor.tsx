@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { useIDEStore } from '../../store/useIDEStore';
-import { FileCode2 } from 'lucide-react';
+import { FileCode2, X } from 'lucide-react';
 
 const CodeEditor: React.FC = () => {
-  const { files, activeFileId, updateFileContent } = useIDEStore();
+  const { files, activeFileId, updateFileContent, openFiles, setActiveFile, closeFile } = useIDEStore();
   const monaco = useMonaco();
   const activeFile = files.find((f) => f.id === activeFileId);
+  const openedFiles = openFiles.map(id => files.find(f => f.id === id)).filter(Boolean) as typeof files;
 
   useEffect(() => {
     if (monaco) {
@@ -61,12 +62,35 @@ const CodeEditor: React.FC = () => {
     <div className="flex-1 flex flex-col h-full bg-[#09090B]">
       {/* Sleek Tab Bar */}
       <div className="flex bg-[#18181b] overflow-x-auto shrink-0 custom-scrollbar select-none relative">
-        <div className="flex items-center px-4 py-2 bg-[#09090B] border-t border-blue-500/50 text-zinc-200 text-xs font-mono min-w-[140px] relative group border-r border-[#27272a]">
-          <FileCode2 className="w-3.5 h-3.5 mr-2 text-blue-400/80 group-hover:text-blue-400 transition-colors" />
-          <span className="truncate">{activeFile.name}</span>
-          <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-[#09090B] to-transparent pointer-events-none" />
-        </div>
-        <div className="flex-1 border-b border-[#27272a]"></div>
+        {openedFiles.map(file => (
+          <div 
+            key={file.id}
+            onClick={() => setActiveFile(file.id)}
+            className={`flex items-center px-4 py-2 border-r border-[#27272a] text-xs font-mono min-w-[140px] max-w-[200px] relative group cursor-pointer transition-colors ${
+              activeFileId === file.id 
+                ? 'bg-[#09090B] border-t border-t-blue-500 text-zinc-200' 
+                : 'bg-[#18181b] border-t border-t-transparent text-zinc-500 hover:bg-[#09090B]/50 hover:text-zinc-300'
+            }`}
+          >
+            <FileCode2 className={`w-3.5 h-3.5 mr-2 shrink-0 transition-colors ${
+              activeFileId === file.id ? 'text-blue-400' : 'text-zinc-600 group-hover:text-blue-400/50'
+            }`} />
+            <span className="truncate flex-1">{file.name}</span>
+            
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                closeFile(file.id);
+              }}
+              className={`p-0.5 rounded-md ml-2 shrink-0 transition-all ${
+                activeFileId === file.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              } hover:bg-[#3f3f46] text-zinc-500 hover:text-zinc-200`}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+        <div className="flex-1 border-b border-[#27272a] bg-[#18181b]"></div>
       </div>
       
       {/* Breadcrumbs */}
